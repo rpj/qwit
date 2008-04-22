@@ -7,8 +7,6 @@ use Exporter qw(import);
 use strict;
 use warnings;
 
-use Time::Local qw(timelocal);
-
 use Qwit::Debug;
 use Qwit::Config;
 use Qwit::InMemoryModel;
@@ -54,8 +52,10 @@ sub qwitCommandIncrement {
     pdebug("Got '$num' from '$id'; new total is $uRef->{total}."); 
 
     unless ($uRef->{'options'}->{'quiet'}) {
+        my $today = $s->{'model'}->numTodayForID($id);
         my $pl = ($num == 1) ? "that one" : "those $num";
-        my $msg = "Including $pl, I've tracked $uRef->{'total'} cigarette(s) total for you.";
+
+        my $msg = "Including $pl, you've smoked $today cigarette(s) today, $uRef->{total} total.";
         $s->{'conn'}->sendDmsg("$id", "$msg");
     }
 
@@ -66,18 +66,7 @@ sub qwitCommandToday {
     my $s = shift;
     my $id = shift;
 
-    my @nowArr = localtime();
-    my $cutoff = timelocal(0, 0, 0, $nowArr[3], $nowArr[4], $nowArr[5]);
-    my $total = 0;
-    pdebug("Cutoff timeval is $cutoff");
-
-    my $h = $s->{'model'}->hashForID("$id");
-    foreach my $en (@{$h->{'enum'}}) {
-        my $num = $en->[0];
-        my $time = $en->[1];
-
-        $total += $num, if ($time >= $cutoff);
-    }
+    my $total = $s->{'model'}->numTodayForID($id);
 
     my $msg = "According to my records, you've smoked $total cigarette(s) today.";
     $s->{'conn'}->sendDmsg("$id", "$msg");
@@ -92,6 +81,23 @@ sub qwitCommandQuietToggle {
     $s->{'model'}->dumpDB();
 }
 
+sub qwitCommandTotal {
+    my ($s, $id) = @_;
+
+    $s->{'conn'}->sendDmsg("$id",
+        "According to my records, you've smoked " .
+        $s->{'model'}->numTotalForID($id) . " cigarette(s) total.");
+}
+
+sub qwitCommandHelp {
+    my ($s, $id) = @_;
+
+    $s->{'conn'}->sendDmsg("$id",
+        "Available commands: " .
+        "today, total, loud, quiet, help, [num] " .
+        "(send the number you smoked)");
+}
+
 # this is the only exported method
 sub runQwitCommand {
     my $s = shift;
@@ -99,25 +105,39 @@ sub runQwitCommand {
 
     my $cmd = $wordsRef->[0];
 
-    if ($cmd =~ /(\d+)/) {
+    if ($cmd =~ /(\d+)/) 
+    {
         qwitCommandIncrement($s, $id, $1, $create);
     }
-    elsif ($cmd eq 'today') {
+    elsif ($cmd eq 'today') 
+    {
         qwitCommandToday($s, $id);
     }
-    elsif ($cmd eq 'quiet') {
+    elsif ($cmd eq 'quiet') 
+    {
         qwitCommandQuietToggle($s, $id, 1);
         $s->{'conn'}->sendDmsg($id, 
             "Quiet mode enabled; will only respond to direct requests. Send 'loud' to disable.");
     }
-    elsif ($cmd eq 'loud') {
+    elsif ($cmd eq 'loud') 
+    {
         qwitCommandQuietToggle($s, $id, 0);
         $s->{'conn'}->sendDmsg($id, "Quiet mode disabled. Send 'quiet' to reenable.");
     }
-    elsif ($cmd eq 'status') {
+    elsif ($cmd eq 'total') 
+    {
+        qwitCommandTotal($s, $id);
+    }
+    elsif ($cmd eq 'help') 
+    {
+        qwitCommandHelp($s, $id);
+    }
+    elsif ($cmd eq 'status') 
+    {
         qwitCommandStatus($s, $id);
     }
-    elsif ($cmd eq 'shutdown') {
+    elsif ($cmd eq 'shutdown') 
+    {
         qwitCommandShutdown($s, $id);
     }
 }

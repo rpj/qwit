@@ -49,7 +49,7 @@ sub init {
 }
 
 ##########
-# Command functions
+# Misc functions
 ##########
 sub checkGodAuth {
     my $s = shift;

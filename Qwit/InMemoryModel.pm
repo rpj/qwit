@@ -5,6 +5,7 @@ use warnings;
 
 use Qwit::Debug;
 use Time::HiRes qw(gettimeofday tv_interval);
+use Time::Local qw(timelocal);
 
 sub new {
     my $c = shift;
@@ -134,6 +135,31 @@ sub hashForID {
     $s->{'db'}->{"$id"} = {}, unless (defined($s->{'db'}->{"$id"}));
 
     return $s->{'db'}->{"$id"};
+}
+
+sub numTotalForID {
+    my ($s, $id) = @_;
+
+    return $s->{'db'}->{"$id"}->{'total'};
+}
+
+sub numTodayForID {
+    my $s = shift;
+    my $id = shift;
+
+    my @nowArr = localtime();
+    my $cutoff = timelocal(0, 0, 0, $nowArr[3], $nowArr[4], $nowArr[5]);
+    my $total = 0;
+
+    my $h = $s->{'db'}->{"$id"};
+    foreach my $en (@{$h->{'enum'}}) {
+        my $num = $en->[0];
+        my $time = $en->[1];
+
+        $total += $num, if ($time >= $cutoff);
+    }
+
+    return $total;
 }
 
 1;
