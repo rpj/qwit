@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Qwit::Debug;
+use Time::HiRes qw(gettimeofday tv_interval);
 
 sub new {
     my $c = shift;
@@ -27,6 +28,7 @@ sub init {
 
 sub dumpDB {
     my $s = shift;
+    my $t0 = [gettimeofday()];
 
     open (DBF, ">$s->{file}") or
         die "Couldn't open DB file '$s->{file}'! $!\n\n";
@@ -57,10 +59,12 @@ sub dumpDB {
     }
 
     close (DBF);
+    pdebug("dumpDB finished in " . tv_interval($t0) . " seconds.");
 }
 
 sub reloadDB() {
     my $s = shift;
+    my $t0 = [gettimeofday()];
     my $f = $s->{'file'};
 
     if ($f && -e $f) {
@@ -104,7 +108,7 @@ sub reloadDB() {
         pdebug("Loaded " . scalar(keys(%{$db})) . " unique users");
     }
 
-    pdebug("Qwit::InMemoryModel::reload_db complete.");
+    pdebug("reloadDB finished in " . tv_interval($t0) . " seconds.");
 }
 
 # setters

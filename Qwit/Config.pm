@@ -37,7 +37,7 @@ sub init {
         $ret = undef;
     }
 
-    pdebug("Qwit::Config::init has hash: ". Dumper($s->{'twitterConf'}));
+    pdebugl(2, "Qwit::Config::init has hash: ". Dumper($s->{'twitterConf'}));
     return $ret;
 }
 
@@ -64,7 +64,7 @@ sub __load_config_from_file {
         }
     }
 
-    pdebug("__load_config_from_file loaded $count directives from '$s->{conf}->{configfile}'");
+    pdebugl(2, "__load_config_from_file loaded $count directives from '$s->{conf}->{configfile}'");
     close (CONF);
 }
 
@@ -89,6 +89,10 @@ sub dbFile {
 
 sub god {
     return (shift)->{'conf'}->{'godid'};
+}
+
+sub debugLevel {
+    return (shift)->{'conf'}->{'debuglevel'};
 }
 
 1;

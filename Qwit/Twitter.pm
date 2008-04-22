@@ -45,7 +45,7 @@ sub __accum_request {
     push (  @{$self->{'reqInfo'}->{'enum'}}, 
             [ $self->{'reqInfo'}->{'count'}, $self->{'reqInfo'}->{'last'} ]);
 
-    pdebug("Accumlated a request: now at $self->{reqInfo}->{count}");
+    pdebugl(2, "Accumlated a request: now at $self->{reqInfo}->{count}");
 }
 
 sub __check_last_request {
@@ -84,6 +84,10 @@ sub following {
     my $self = shift;
     return $self->__check_and_accum($self->{'conn'}->following());
 }
+
+# pass thrus
+sub http_code { return (shift)->{'conn'}->http_code(); }
+sub http_message { return (shift)->{'conn'}->http_message(); }
 
 sub sendDmsg {
     my $s = shift;

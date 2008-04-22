@@ -15,7 +15,11 @@ sub pdebug($) {
 
 sub pdebugl($$) {
     my ($level, $str) = @_;
-    pdebug($str), if ($level >= $__DEBUG);
+    pdebug($str), if ($level <= $__DEBUG);
+}
+
+sub setDebugLevel {
+    $__DEBUG = shift;
 }
 
 1;
