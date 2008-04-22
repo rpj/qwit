@@ -96,7 +96,7 @@ sub qwitCommandRateToday {
 
     $s->{'conn'}->sendDmsg("$id",
         "Your smoking rate today has been " .
-        ($s->{'model'}->rateTodayForID($id) / 60 / 60) .
+        sprintf("%0.3f", ($s->{'model'}->rateTodayForID($id) / 60 / 60)) .
         " cigarette(s)/hour.");
 }
 
@@ -105,7 +105,7 @@ sub qwitCommandRateTotal {
 
     $s->{'conn'}->sendDmsg("$id",
         "Your smoking rate in total has been " .
-        ($s->{'model'}->rateTotalForID($id) / 60 / 60) .
+        sprintf("%0.3f", ($s->{'model'}->rateTotalForID($id) / 60 / 60)) .
         " cigarette(s)/hour.");
 }
 
