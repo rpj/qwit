@@ -35,6 +35,10 @@ sub attachModel {
     $self->{'model'} = $model;
 }
 
+sub numRequestsProcessed {
+    return (shift)->{'reqInfo'}->{'count'};
+}
+
 sub __accum_request {
     my $self = shift;
 

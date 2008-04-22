@@ -34,7 +34,9 @@ sub qwitCommandStatus {
         my $dD = int($dH / 24);
 
         my $str = "(status) Up since " . scalar(localtime($s->{'uptime'})) .
-            " (${dD}d${dH}h${dM}m${dS}s).";
+            " (${dD}d${dH}h${dM}m${dS}s). " . $s->{'conn'}->numRequestsProcessed() .
+            " requests.";
+
         $s->{'conn'}->sendDmsg($s->{'config'}->god(), $str);
     }
 }
@@ -89,12 +91,30 @@ sub qwitCommandTotal {
         $s->{'model'}->numTotalForID($id) . " cigarette(s) total.");
 }
 
+sub qwitCommandRateToday {
+    my ($s, $id) = @_;
+
+    $s->{'conn'}->sendDmsg("$id",
+        "Your smoking rate today has been " .
+        ($s->{'model'}->rateTodayForID($id) / 60 / 60) .
+        " cigarette(s)/hour.");
+}
+
+sub qwitCommandRateTotal {
+    my ($s, $id) = @_;
+
+    $s->{'conn'}->sendDmsg("$id",
+        "Your smoking rate in total has been " .
+        ($s->{'model'}->rateTotalForID($id) / 60 / 60) .
+        " cigarette(s)/hour.");
+}
+
 sub qwitCommandHelp {
     my ($s, $id) = @_;
 
     $s->{'conn'}->sendDmsg("$id",
         "Available commands: " .
-        "today, total, loud, quiet, help, [num] " .
+        "today, total, loud, quiet, help, ratetoday, ratetotal, [num] " .
         "(send the number you smoked)");
 }
 
@@ -131,6 +151,14 @@ sub runQwitCommand {
     elsif ($cmd eq 'help') 
     {
         qwitCommandHelp($s, $id);
+    }
+    elsif ($cmd eq 'ratetoday')
+    {
+        qwitCommandRateToday($s, $id);
+    }
+    elsif ($cmd eq 'ratetotal')
+    {
+        qwitCommandRateTotal($s, $id);
     }
     elsif ($cmd eq 'status') 
     {

@@ -162,4 +162,60 @@ sub numTodayForID {
     return $total;
 }
 
+sub recordsForID {
+    my ($s, $id) = @_;
+
+    return @{ $s->{'db'}->{"$id"}->{'enum'} };
+}
+
+sub numRecordsForID {
+    my ($s, $id) = @_;
+
+    return scalar($s->recordsForID($id));
+}
+
+sub rateTodayForID {
+    my ($s, $id) = @_;
+    my @nowArr = localtime();
+    my $cutoff = timelocal(0, 0, 0, $nowArr[3], $nowArr[4], $nowArr[5]);
+
+    return $s->rateSinceCutoffForID($id, $cutoff);
+}
+
+sub rateTotalForID {
+    my ($s, $id) = @_;
+    return $s->rateSinceCutoffForID($id, 0);
+}
+
+sub rateSinceCutoffForID {
+    my ($s, $id, $cutoff) = @_;
+    my $rateRet = undef;
+
+    if ($s && $id) {
+        my $count = 0;
+        my $last = 0;
+        my $accum = 0;
+
+        # accumulate totals if the record has a timestamp >= cutoff time
+        foreach my $item ($s->recordsForID($id)) 
+        {
+            my $itime = $item->[1];
+
+            if ($itime >= $cutoff)
+            {
+                if ($last != 0 && $itime > $last) {
+                    $accum += ($itime - $last);
+                    $count++;
+                }
+                
+                $last = $itime;
+            }
+        }
+        
+        $rateRet = $accum / $count;
+    }
+
+    return $rateRet;
+}
+
 1;
