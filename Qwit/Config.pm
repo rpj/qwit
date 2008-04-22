@@ -50,7 +50,7 @@ sub __load_config_from_file {
 
     while (<CONF>) {
         # match 'key = var' style lines
-        if (/^(\w+)\s+\=\s+(\w+)$/ig) {
+        if (/^(\w+)\s+\=\s+(.*?)$/ig) {
             $s->{'conf'}->{$1} = $2;    
             $count++;
 

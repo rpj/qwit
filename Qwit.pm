@@ -3,6 +3,7 @@ package Qwit;
 use strict;
 use warnings;
 use Exporter qw(import);
+use Time::Local qw(timelocal);
 
 use Qwit::Twitter;
 use Qwit::Debug;
@@ -49,7 +50,7 @@ sub checkGodAuth {
     my $s = shift;
     my $id = shift;
 
-    return ($id == $s->{'model'}->god());
+    return ($id == $s->{'config'}->god());
 }
 
 sub commandShutdown {
@@ -75,7 +76,7 @@ sub commandStatus {
 
         my $str = "(status) Up since " . scalar(localtime($s->{'uptime'})) .
             " (${dD}d${dH}h${dM}m${dS}s).";
-        $s->{'conn'}->sendDmsg($s->{'model'}->god(), $str);
+        $s->{'conn'}->sendDmsg($s->{'config'}->god(), $str);
     }
 }
 
@@ -96,6 +97,8 @@ sub commandIncrement {
         my $msg = "Including $pl, I've tracked $uRef->{'total'} cigarette(s) total for you.";
         $s->{'conn'}->sendDmsg("$id", "$msg");
     }
+
+    $s->{'model'}->dumpDB();
 }
 
 sub commandToday {
@@ -125,6 +128,7 @@ sub commandQuietToggle {
     my $newVal = shift;
 
     $s->{'model'}->hashForID("$id")->{'options'}->{'quiet'} = $newVal;
+    $s->{'model'}->dumpDB();
 }
 
 sub runCommand {
