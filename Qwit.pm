@@ -67,7 +67,7 @@ sub processMessages {
         my $i = $msg->{'sender_id'};
         my $c = $msg->{'created_at'};
 
-        print "Processing '$t' from '$s'\n";
+        qprint "Processing '$t' from '$s'";
 
         my @words = split(/\s+/, $t);
         runQwitCommand($self, $i, $c, \@words);
@@ -85,7 +85,6 @@ sub runLoop {
     $s->{'uptime'} = time();
     $s->{'lastWake'} = 0;
     
-    print "Reloading database...\n";
     $s->{'model'}->reloadDB();
 
     while ($s->{'run'}) {
@@ -127,15 +126,15 @@ sub runLoop {
         sleep(1);
     }
 
-    print "Quitting; dumping database...\n";
+    qprint "Quitting; dumping database...";
     $s->{'model'}->dumpDB();
-    print "Done.\n";
+    qprint "Done.\n";
 }
 
 sub forceRefresh {
     my $s = shift;
 
-    print "Forcing refresh...\n";
+    qprint "Forcing refresh...";
     $s->{'model'}->dumpDB();
 
     # force refresh by pretending we never woke up before

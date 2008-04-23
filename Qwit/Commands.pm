@@ -27,7 +27,8 @@ sub qwitCommandStatus {
     my $s = shift;
     my $id = shift;
 
-    my $tDiff = time() - $s->{'uptime'};
+    # bad way to ensure no div/0 later, but what's one second?
+    my $tDiff = (time() - $s->{'uptime'}) + 1;
     my $dS = $tDiff % 60;
     my $dM = int($tDiff / 60);
     my $dH = int($dM / 60);
@@ -35,10 +36,15 @@ sub qwitCommandStatus {
     $dM %= 60;
     $dH %= 24;
 
-    my $str = "(status) Up since " . scalar(localtime($s->{'uptime'})) .
-        " (${dD}d${dH}h${dM}m${dS}s); " . $s->{'conn'}->numRequestsProcessed() .
-        " reqs; " . $s->{'model'}->totalNumUsers() . " users; " .
-        ($s->{'config'}->sleepDelay()) . "m delay.";
+    my $numReqs = $s->{'conn'}->numRequestsProcessed();
+    my $sUptime = scalar(localtime($s->{'uptime'}));
+    $sUptime =~ s/\:\d\d\s+\d{4}$//ig;
+
+    my $str = "(status) Up since $sUptime" .
+        ", ${dD}d${dH}h${dM}m${dS}s; $numReqs reqs, ~" .
+        sprintf("%0.1f", +(($numReqs / $tDiff) / 60 / 60)) . "/hr; " . 
+        $s->{'model'}->totalNumUsers() . 
+        " users; " . int($s->{'config'}->sleepDelay() / 60) . "m delay.";
 
     $s->{'conn'}->sendDmsg($s->{'config'}->god(), $str);
 }
@@ -181,7 +187,8 @@ sub qwitCommandStats {
     my $firstDay = int($firstHr / 24);
     $firstMin %= 60;
     $firstHr %= 24;
-    my $firstStr = "${firstDay}d${firstHr}h${firstMin}m ago";
+
+    my $firstStr = sprintf("%0.2f days ago", ($firstDiff / 60.0 / 60.0 /24.0));
 
     $s->{'conn'}->sendDmsg("$id",
         "(stats) $total smoked, $today today; $rTotal hr/cig total; $rToday hr/cig today; " .

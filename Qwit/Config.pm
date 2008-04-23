@@ -39,7 +39,7 @@ sub init {
         $ret = undef;
     }
 
-    pdebugl(2, "Qwit::Config::init has hash: ". Dumper($s->{'twitterConf'}));
+    pdebugl(3, "Qwit::Config::init has hash: ". Dumper($s->{'twitterConf'}));
     return $ret;
 }
 
@@ -66,7 +66,7 @@ sub __load_config_from_file {
         }
     }
 
-    pdebugl(2, "__load_config_from_file loaded $count directives from '$s->{conf}->{configfile}'");
+    pdebugl(2, "Loaded $count directives from '$s->{conf}->{configfile}'");
     close (CONF);
 }
 

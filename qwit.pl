@@ -8,8 +8,9 @@ our $VERSION = 0.10;
 my $confFile = $ARGV[0] || 'qwit.config';
 
 use Qwit;
+use Qwit::Debug;
 
-print "Starting Qwit daemon version $VERSION with config file '$confFile'...\n";
+qprint "Starting Qwit daemon version $VERSION with config file '$confFile'...";
 
 my $qt = Qwit->new( configfile => "$confFile" );
 
@@ -18,6 +19,6 @@ sub catchquit { $qt->forceRefresh(); }
 $SIG{INT} = \&catchsig;
 $SIG{TSTP} = \&catchquit;
 
-print "Sleep delay: " . $qt->{'config'}->sleepDelay() . "\n";
+qprint "Sleep delay: " . $qt->{'config'}->sleepDelay();
 
 $qt->runLoop();

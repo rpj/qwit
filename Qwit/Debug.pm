@@ -3,14 +3,20 @@ package Qwit::Debug;
 use POSIX qw(strftime);
 use Exporter qw(import);
 
-@EXPORT = qw(pdebug pdebugl);
+@EXPORT = qw(pdebug pdebugl qprint);
 
 our $__DEBUG = 2;
 
+sub __prependString {
+    my $pch = shift || "-";
+    return "$0 - " . (strftime("%a %b %e %H:%M:%S %Y", localtime)) . " ${pch}> ";
+}
+
+sub qprint($) {
+    print __prependString() . (shift) . "\n";
+}
 sub pdebug($) {
-    my $str = shift;
-    print STDERR "DEBUG " . (strftime("%a %b %e %H:%M:%S %Y", localtime)) .
-        " >> $str\n", if ($__DEBUG);
+    print STDERR __prependString($__DEBUG) . (shift) . "\n", if ($__DEBUG);
 }
 
 sub pdebugl($$) {
