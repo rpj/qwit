@@ -6,6 +6,7 @@ use Exporter qw(import);
 
 use strict;
 use warnings;
+use POSIX qw(strftime);
 
 use Qwit::Debug;
 use Qwit::Config;
@@ -95,18 +96,18 @@ sub qwitCommandRateToday {
     my ($s, $id) = @_;
 
     $s->{'conn'}->sendDmsg("$id",
-        "Your smoking rate today has been " .
+        "Smoking rate today has been " .
         sprintf("%0.3f", ($s->{'model'}->rateTodayForID($id) / 60 / 60)) .
-        " cigarette(s)/hour.");
+        " hours between cigarettes.");
 }
 
 sub qwitCommandRateTotal {
     my ($s, $id) = @_;
 
     $s->{'conn'}->sendDmsg("$id",
-        "Your smoking rate in total has been " .
+        "Smoking rate in total has been " .
         sprintf("%0.3f", ($s->{'model'}->rateTotalForID($id) / 60 / 60)) .
-        " cigarette(s)/hour.");
+        " hours between cigarettes.");
 }
 
 sub qwitCommandHelp {
@@ -114,8 +115,36 @@ sub qwitCommandHelp {
 
     $s->{'conn'}->sendDmsg("$id",
         "Available commands: " .
-        "today, total, loud, quiet, help, ratetoday, ratetotal, [num] " .
-        "(send the number you smoked)");
+        "today, total, loud, quiet, help, ratetoday, ratetotal, stats, [num]");
+}
+
+sub qwitCommandStats {
+    my ($s, $id) = @_;
+
+    my $rToday = sprintf("%0.1f", $s->{'model'}->rateTodayForID($id) / 60 / 60);
+    my $rTotal = sprintf("%0.1f", $s->{'model'}->rateTotalForID($id) / 60 / 60);
+
+    my $uh = $s->{'model'}->hashForID($id);
+    my $total = $uh->{'total'};
+
+    my $now = time();
+    my $lastDiff = $now - $uh->{'last'};
+    my $lastMin = int($lastDiff / 60);
+    my $lastHr = int($lastMin / 60) % 60;
+    $lastMin %= 60;
+
+    my @recs = $s->{'model'}->recordsForID($id);
+    my $firstDiff = $now - $recs[0]->[1];
+    my $firstMin = int($firstDiff / 60);
+    my $firstHr = int($firstMin / 60);
+    my $firstDay = int($firstHr / 24);
+    $firstMin %= 60;
+    $firstHr %= 24;
+    my $firstStr = "${firstDay}d${firstHr}h${firstMin}m ago";
+
+    $s->{'conn'}->sendDmsg("$id",
+        "(stats) $total smoked; $rToday hr/cig today; $rTotal hr/cig total; " .
+        "last was ${lastHr}h${lastMin}m ago; first was $firstStr");
 }
 
 # this is the only exported method
@@ -159,6 +188,10 @@ sub runQwitCommand {
     elsif ($cmd eq 'ratetotal')
     {
         qwitCommandRateTotal($s, $id);
+    }
+    elsif ($cmd eq 'stats')
+    {
+        qwitCommandStats($s, $id);
     }
     elsif ($cmd eq 'status') 
     {
