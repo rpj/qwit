@@ -162,6 +162,12 @@ sub numTodayForID {
     return $total;
 }
 
+sub totalNumUsers {
+    my $s = shift;
+
+    return scalar(keys(%{ $s->{'db'} }));
+}
+
 sub recordsForID {
     my ($s, $id) = @_;
 
@@ -203,7 +209,7 @@ sub rateSinceCutoffForID {
 
             if ($itime >= $cutoff)
             {
-                if ($last != 0 && $itime > $last) {
+                if ($last != 0 && $itime >= $last) {
                     $accum += ($itime - $last);
                     $count++;
                 }

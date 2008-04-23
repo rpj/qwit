@@ -11,28 +11,30 @@ use Data::Dumper;
 
 sub new {
     my $class = shift;
-    my %conf = @_;
+    my $conf = shift;
+    my $model = shift;
     my $self = {};
 
-    bless($self, $class);
+    if ($conf && $model) {
+        bless($self, $class);
 
-    $self->{'conf'} = { %conf }, if (%conf);
-    return $self->init();
+        $self->{'config'} = $conf;
+        $self->{'model'} = $model;
+
+        return $self->init();
+    }
+
+    warn "Qwit::Twitter::new needs args of Qwit::Config and a model.";
+    return undef;
 }
 
 sub init {
     my $self = shift;
 
-    $self->{'conn'} = Net::Twitter->new(%{$self->{'conf'}});
+    $self->{'conf'} = $self->{'config'}->twitterConf();
+    $self->{'conn'} = Net::Twitter->new(%{ $self->{'conf'} });
 
     return $self;
-}
-
-sub attachModel {
-    my $self = shift;
-    my $model = shift;
-
-    $self->{'model'} = $model;
 }
 
 sub numRequestsProcessed {
@@ -164,6 +166,15 @@ sub checkFollowing {
 
                     my $msg = "Hello $ersOne->{'name'}: I'm now following you as well!";
                     $s->sendDmsg("$ersOne->{'id'}", "$msg");
+
+                    my $url = defined($ersOne->{'url'}) ? "url $ersOne->{url};" : "";
+
+                    $s->sendDmsg($s->{'config'}->god(),
+                     "I'm now following $ersOne->{name} " .
+                     "($ersOne->{screen_name}); " .
+                     "$url $ersOne->{followers_count} followers");
+                        
+                        
                 }
             }
         }

@@ -8,6 +8,8 @@ use Exporter qw(import);
 use Qwit::Debug;
 use Data::Dumper;
 
+my $ModifiableKeys = "debuglevel sleepdelay";
+
 sub new {
     my $c = shift;
     my %conf = @_;
@@ -93,6 +95,40 @@ sub god {
 
 sub debugLevel {
     return (shift)->{'conf'}->{'debuglevel'};
+}
+
+sub isKeyModifiable {
+    my ($s, $k) = @_;
+
+    return (index($ModifiableKeys, $k) >= 0);
+}
+
+sub setAllowedKey {
+    my ($s, $k, $v) = @_;
+
+    if ($k eq 'debuglevel') {
+        $s->setDebugLevel($v);
+    }
+    elsif ($k eq 'sleepdelay') {
+        $s->setSleepDelay($v);
+    }
+}
+
+sub setDebugLevel {
+    my ($s, $l) = @_;
+    
+    if (int($l)) {
+        $s->{'conf'}->{'debuglevel'} = int($l);
+        Qwit::Debug::setDebugLevel(int($l));
+    }
+}
+
+sub setSleepDelay {
+    my ($s, $d) = @_;
+
+    if (int($d)) {
+        $s->{'conf'}->{'sleepdelay'} = int($d);
+    }
 }
 
 1;

@@ -1,0 +1,8 @@
+username = twitterUsername
+password = twitterPassword 
+clientname = twitterClientName
+sleepdelay = delayBetweenProcessingLoops_InSeconds
+delaymult = howMuchToMultiplyAboveDelayByIfConnectionProblemsOccur
+dbfile = databaseFileRelativeToDirectoryQwitRunsIn
+godid = twitterIDNumberOf"God"User
+debuglevel = integerDebugLevel_0ForNothing

@@ -27,20 +27,48 @@ sub qwitCommandStatus {
     my $s = shift;
     my $id = shift;
 
-    if ($s->checkGodAuth($id)) {
-        my $tDiff = time() - $s->{'uptime'};
-        my $dS = $tDiff % 60;
-        my $dM = int($tDiff / 60);
-        my $dH = int($dM / 60);
-        my $dD = int($dH / 24);
-        $dM %= 60;
-        $dH %= 24;
+    my $tDiff = time() - $s->{'uptime'};
+    my $dS = $tDiff % 60;
+    my $dM = int($tDiff / 60);
+    my $dH = int($dM / 60);
+    my $dD = int($dH / 24);
+    $dM %= 60;
+    $dH %= 24;
 
-        my $str = "(status) Up since " . scalar(localtime($s->{'uptime'})) .
-            " (${dD}d${dH}h${dM}m${dS}s). " . $s->{'conn'}->numRequestsProcessed() .
-            " requests.";
+    my $str = "(status) Up since " . scalar(localtime($s->{'uptime'})) .
+        " (${dD}d${dH}h${dM}m${dS}s); " . $s->{'conn'}->numRequestsProcessed() .
+        " reqs; " . $s->{'model'}->totalNumUsers() . " users; " .
+        ($s->{'config'}->sleepDelay()) . "m delay.";
 
-        $s->{'conn'}->sendDmsg($s->{'config'}->god(), $str);
+    $s->{'conn'}->sendDmsg($s->{'config'}->god(), $str);
+}
+
+sub qwitCommandConfig {
+    my $s = shift;
+    my $id = shift;
+    my $wordsRef = shift;
+    my $gMsg = undef; 
+
+    if (scalar(@{ $wordsRef }) >= 1)
+    {
+        my $keyToChg = shift(@{ $wordsRef });
+
+        if ($s->{'config'}->isKeyModifiable($keyToChg))
+        {
+            my $newVal = join(" ", @{ $wordsRef });
+            pdebug("Config command adjusting '$keyToChg' to '$newVal'");
+
+            $s->{'config'}->setAllowedKey($keyToChg, $newVal);
+
+            $gMsg = "Config key '$keyToChg' has new value '$newVal'";
+        }
+        elsif ($keyToChg eq 'list')
+        {
+            $gMsg = "(config list) debuglevel " . $s->{'config'}->debugLevel() . 
+                "; sleepdelay " . $s->{'config'}->sleepDelay();
+        }
+
+        $s->{'conn'}->sendDmsg($s->{'config'}->god(), $gMsg), if (defined($gMsg));
     }
 }
 
@@ -163,7 +191,7 @@ sub runQwitCommand {
     my $s = shift;
     my ($id, $create, $wordsRef) = @_;
 
-    my $cmd = $wordsRef->[0];
+    my $cmd = shift(@{ $wordsRef });
 
     if ($cmd =~ /(\d+)/) 
     {
@@ -204,13 +232,22 @@ sub runQwitCommand {
     {
         qwitCommandStats($s, $id);
     }
-    elsif ($cmd eq 'status') 
+
+    # "god" commands
+    if ($s->checkGodAuth($id))
     {
-        qwitCommandStatus($s, $id);
-    }
-    elsif ($cmd eq 'shutdown') 
-    {
-        qwitCommandShutdown($s, $id);
+        if ($cmd eq 'config')
+        {
+            qwitCommandConfig($s, $id, $wordsRef);
+        }
+        elsif ($cmd eq 'status') 
+        {
+            qwitCommandStatus($s, $id);
+        }
+        elsif ($cmd eq 'shutdown') 
+        {
+            qwitCommandShutdown($s, $id);
+        }
     }
 }
 

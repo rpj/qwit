@@ -32,19 +32,18 @@ sub init {
             if ((my $dbLvl = $self->{'config'}->debugLevel())) {
                 Qwit::Debug::setDebugLevel($dbLvl);
             }
-            
+
+            $self->{'model'} = Qwit::InMemoryModel->new($self->{'config'}->dbFile());
+
             $self->{'run'} = $self->{'delaymult'} = 1;
-            $self->{'conn'} = Qwit::Twitter->new(%{ $self->{'config'}->twitterConf() });
+            $self->{'conn'} = Qwit::Twitter->new($self->{'config'}, $self->{'model'});
 
             pdebugl(2, "Qwit got connection $self->{conn}");
-
-            # create a model and attach it to the twitter object
-            $self->{'model'} = Qwit::InMemoryModel->new($self->{'config'}->dbFile());
-            $self->{'conn'}->attachModel($self->{'model'});
             return $self;
         }
     }
 
+    warn "Qwit::new unable to configure correctly.";
     return undef;
 }
 
@@ -81,17 +80,17 @@ sub processMessages {
 sub runLoop {
     my $s = shift;
     my $dMult = 1;
-    my $lastWake = 0;
     my $now = 0;
 
     $s->{'uptime'} = time();
+    $s->{'lastWake'} = 0;
     
     print "Reloading database...\n";
     $s->{'model'}->reloadDB();
 
     while ($s->{'run'}) {
-        if ((($now = time()) - $lastWake) > ($s->{'config'}->sleepDelay() * $dMult)) {
-            $lastWake = $now;
+        if ((($now = time()) - $s->{'lastWake'}) > ($s->{'config'}->sleepDelay() * $dMult)) {
+            $s->{'lastWake'} = $now;
             pdebugl(2, "Awake...");
 
             if ($s->{'conn'}->checkFollowing()) {
@@ -105,7 +104,13 @@ sub runLoop {
                     $dMult = 1;
                 }
 
-                $s->processMessages($s->{'conn'}->collectDmsgs([]));
+                # messages are collected in reverse order because of the
+                # push() used, so we reverse the overall resulting array
+                my @msgsRef = reverse(@{ 
+                                $s->{'conn'}->collectDmsgs([])
+                                });
+
+                $s->processMessages(\@msgsRef);
             }
             else
             {
@@ -125,6 +130,16 @@ sub runLoop {
     print "Quitting; dumping database...\n";
     $s->{'model'}->dumpDB();
     print "Done.\n";
+}
+
+sub forceRefresh {
+    my $s = shift;
+
+    pdebug("Forced refresh...");
+    $s->{'model'}->dumpDB();
+
+    # force refresh by pretending we never woke up before
+    $s->{'lastWake'} = 0;
 }
 
 sub shutdown {

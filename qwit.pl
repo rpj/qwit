@@ -14,7 +14,9 @@ print "Starting Qwit daemon version $VERSION with config file '$confFile'...\n";
 my $qt = Qwit->new( configfile => "$confFile" );
 
 sub catchsig { $qt->shutdown(); }
+sub catchquit { $qt->forceRefresh(); }
 $SIG{INT} = \&catchsig;
+$SIG{TSTP} = \&catchquit;
 
 print "Sleep delay: " . $qt->{'config'}->sleepDelay() . "\n";
 
