@@ -58,14 +58,16 @@ sub qwitCommandConfig {
             my $newVal = join(" ", @{ $wordsRef });
             pdebug("Config command adjusting '$keyToChg' to '$newVal'");
 
-            $s->{'config'}->setAllowedKey($keyToChg, $newVal);
-
-            $gMsg = "Config key '$keyToChg' has new value '$newVal'";
+            if ($s->{'config'}->setAllowedKey($keyToChg, $newVal)) {
+                $gMsg = "Config key '$keyToChg' has new value '$newVal'.";
+            } else {
+                $gMsg = "Error setting '$keyToChg' to '$newVal'.";
+            }
         }
         elsif ($keyToChg eq 'list')
         {
             $gMsg = "(config list) debuglevel " . $s->{'config'}->debugLevel() . 
-                "; sleepdelay " . $s->{'config'}->sleepDelay();
+                "; sleepdelay " . $s->{'config'}->sleepDelay() . ".";
         }
 
         $s->{'conn'}->sendDmsg($s->{'config'}->god(), $gMsg), if (defined($gMsg));

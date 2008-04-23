@@ -105,30 +105,41 @@ sub isKeyModifiable {
 
 sub setAllowedKey {
     my ($s, $k, $v) = @_;
+    my $rv = 0;
 
     if ($k eq 'debuglevel') {
-        $s->setDebugLevel($v);
+        $rv = $s->setDebugLevel($v);
     }
     elsif ($k eq 'sleepdelay') {
-        $s->setSleepDelay($v);
+        $rv = $s->setSleepDelay($v);
     }
+
+    return $rv;
 }
 
 sub setDebugLevel {
     my ($s, $l) = @_;
     
-    if (int($l)) {
+    if ($l =~ /^\d+$/) {
         $s->{'conf'}->{'debuglevel'} = int($l);
         Qwit::Debug::setDebugLevel(int($l));
+
+        return 1;
     }
+
+    return 0;
 }
 
 sub setSleepDelay {
     my ($s, $d) = @_;
 
-    if (int($d)) {
+    if ($d =~ /^\d+$/ && int($d) > 60) {
         $s->{'conf'}->{'sleepdelay'} = int($d);
+
+        return 1;
     }
+
+    return 0;
 }
 
 1;

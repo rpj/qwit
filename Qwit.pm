@@ -135,7 +135,7 @@ sub runLoop {
 sub forceRefresh {
     my $s = shift;
 
-    pdebug("Forced refresh...");
+    print "Forcing refresh...\n";
     $s->{'model'}->dumpDB();
 
     # force refresh by pretending we never woke up before
