@@ -48,6 +48,7 @@ sub qwitCommandIncrement {
 
     my $uRef = $s->{'model'}->hashForID("$id");
 
+    my $saveLast = $uRef->{'last'};
     $uRef->{'total'} += $num;
     $uRef->{'last'} = time;
     push (@{$uRef->{'enum'}}, [ $num, $uRef->{'last'}, $create ]);  
@@ -58,7 +59,14 @@ sub qwitCommandIncrement {
         my $today = $s->{'model'}->numTodayForID($id);
         my $pl = ($num == 1) ? "that one" : "those $num";
 
-        my $msg = "Including $pl, you've smoked $today cigarette(s) today, $uRef->{total} total.";
+        my $slMin = int(($uRef->{'last'} - $saveLast) / 60);
+        my $slHr = int($slMin / 60);
+        my $slDay = int($slHr / 24);
+        $slMin %= 60;
+        $slHr %= 24;
+
+        my $msg = "Including $pl, you've smoked $today cigarette(s) today. " .
+            "It had been ${slDay}d${slHr}h${slMin}m since your last.";
         $s->{'conn'}->sendDmsg("$id", "$msg");
     }
 
