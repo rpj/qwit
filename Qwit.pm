@@ -92,14 +92,15 @@ sub runLoop {
     while ($s->{'run'}) {
         if ((($now = time()) - $lastWake) > ($s->{'config'}->sleepDelay() * $dMult)) {
             $lastWake = $now;
-            pdebug("Awake...");
+            pdebugl(2, "Awake...");
 
             if ($s->{'conn'}->checkFollowing()) {
                 # send 'god' a message if we came out of a delay
                 if ($dMult > 1) {
                     $s->{'conn'}->sendDmsg($s->{'config'}->god(),
-                        "Connectivity re-restablished after a delay of " .
-                            int(($s->{'config'}->sleepDelay() * $dMult) / 60) . " minutes.");
+                        "Reconnected after delay of " .
+                         int(($s->{'config'}->sleepDelay() * $dMult) / 60) .
+                         "m. Last error was '$s->{lastErrorCode}: $s->{lastErrorMsg}'");
 
                     $dMult = 1;
                 }
@@ -109,9 +110,11 @@ sub runLoop {
             else
             {
                 # only bump the delay when we get a HTTP 400 back, which usually means we're rate limited
-                $dMult *= $s->{'config'}->delayMult(), if ($s->{'conn'}->http_code() == 400);
+                $s->{'lastErrorCode'} = $s->{'conn'}->http_code();
+                $s->{'lastErrorMsg'} = $s->{'conn'}->http_message();
+                $dMult *= $s->{'config'}->delayMult(), if ($s->{'lastErrorCode'} == 400);
 
-                pdebug("Appears to be connectivity issues; bumping delay to " .
+                pdebug("Connectivity issue ($s->{lastErrorCode}); bumping delay to " .
                     int(($s->{'config'}->sleepDelay() * $dMult) / 60) . " minutes.");
             }
         }

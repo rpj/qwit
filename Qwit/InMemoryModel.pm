@@ -189,7 +189,7 @@ sub rateTotalForID {
 
 sub rateSinceCutoffForID {
     my ($s, $id, $cutoff) = @_;
-    my $rateRet = undef;
+    my $rateRet = 0;
 
     if ($s && $id) {
         my $count = 0;
@@ -212,7 +212,7 @@ sub rateSinceCutoffForID {
             }
         }
         
-        $rateRet = $accum / $count;
+        $rateRet = $accum / $count, if ($count);
     }
 
     return $rateRet;

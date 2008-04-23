@@ -33,6 +33,8 @@ sub qwitCommandStatus {
         my $dM = int($tDiff / 60);
         my $dH = int($dM / 60);
         my $dD = int($dH / 24);
+        $dM %= 60;
+        $dH %= 24;
 
         my $str = "(status) Up since " . scalar(localtime($s->{'uptime'})) .
             " (${dD}d${dH}h${dM}m${dS}s). " . $s->{'conn'}->numRequestsProcessed() .
@@ -134,6 +136,7 @@ sub qwitCommandStats {
 
     my $uh = $s->{'model'}->hashForID($id);
     my $total = $uh->{'total'};
+    my $today = $s->{'model'}->numTodayForID($id);
 
     my $now = time();
     my $lastDiff = $now - $uh->{'last'};
@@ -151,7 +154,7 @@ sub qwitCommandStats {
     my $firstStr = "${firstDay}d${firstHr}h${firstMin}m ago";
 
     $s->{'conn'}->sendDmsg("$id",
-        "(stats) $total smoked; $rToday hr/cig today; $rTotal hr/cig total; " .
+        "(stats) $total smoked, $today today; $rTotal hr/cig total; $rToday hr/cig today; " .
         "last was ${lastHr}h${lastMin}m ago; first was $firstStr");
 }
 
