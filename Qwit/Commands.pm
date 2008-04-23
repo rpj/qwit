@@ -13,6 +13,14 @@ use Qwit::Config;
 use Qwit::InMemoryModel;
 use Qwit::Twitter;
 
+sub __pluralize {
+    my ($n, $str) = @_;
+    my $r = "";
+
+    $r = ("$n " . ($n == 1 ? $str : "${str}s") . " "), if (defined($n));
+    return $r;
+}
+
 sub qwitCommandShutdown {
     my $s = shift;
     my $id = shift;
@@ -97,14 +105,12 @@ sub qwitCommandIncrement {
         my $today = $s->{'model'}->numTodayForID($id);
         my $pl = ($num == 1) ? "that one" : "those $num";
 
-        my $slMin = int(($uRef->{'last'} - $saveLast) / 60);
-        my $slHr = int($slMin / 60);
-        my $slDay = int($slHr / 24);
-        $slMin %= 60;
-        $slHr %= 24;
+        my $lr = $s->{'model'}->lastForID($id);
+        my $lstr = __pluralize($lr->{d}, "day") . __pluralize($lr->{h}, "hr") .
+            __pluralize($lr->{m}, "min");
 
         my $msg = "Including $pl, you've smoked $today cigarette(s) today. " .
-            "It had been ${slDay}d${slHr}h${slMin}m since your last.";
+            "It had been ${lstr}since your last.";
         $s->{'conn'}->sendDmsg("$id", "$msg");
     }
 
@@ -175,10 +181,6 @@ sub qwitCommandStats {
     my $today = $s->{'model'}->numTodayForID($id);
 
     my $now = time();
-    my $lastDiff = $now - $uh->{'last'};
-    my $lastMin = int($lastDiff / 60);
-    my $lastHr = int($lastMin / 60) % 60;
-    $lastMin %= 60;
 
     my @recs = $s->{'model'}->recordsForID($id);
     my $firstDiff = $now - $recs[0]->[1];
@@ -190,17 +192,13 @@ sub qwitCommandStats {
 
     my $firstStr = sprintf("%0.2f days ago", ($firstDiff / 60.0 / 60.0 /24.0));
 
+    my $lr = $s->{'model'}->lastForID($id);
+    my $lstr = __pluralize($lr->{d}, "day") . __pluralize($lr->{h}, "hr") .
+        __pluralize($lr->{m}, "min");
+
     $s->{'conn'}->sendDmsg("$id",
         "(stats) $total smoked, $today today; $rTotal hr/cig total; $rToday hr/cig today; " .
-        "last was ${lastHr}h${lastMin}m ago; first was $firstStr");
-}
-
-sub __pluralize {
-    my ($n, $str) = @_;
-    my $r = "";
-
-    $r = ("$n " . ($n == 1 ? $str : "${str}s") . " "), if (defined($n));
-    return $r;
+        "last was ${lstr}ago; first was $firstStr");
 }
 
 sub qwitCommandLast {

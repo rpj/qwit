@@ -60,7 +60,7 @@ sub dumpDB {
     }
 
     close (DBF);
-    pdebug("dumpDB finished in " . tv_interval($t0) . " seconds.");
+    pdebugl(2, "dumpDB finished in " . tv_interval($t0) . " seconds.");
 }
 
 sub reloadDB() {
@@ -120,6 +120,7 @@ sub setLastMsgId {
     my $lmi = shift;
 
     $s->{'lastMsgId'} = $lmi;
+    $s->dumpDB();
 }
 
 # getters 

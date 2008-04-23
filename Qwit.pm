@@ -72,7 +72,7 @@ sub processMessages {
         my @words = split(/\s+/, $t);
         runQwitCommand($self, $i, $c, \@words);
 
-        $self->{'model'}->setLastMsgId($msg->{'id'}) if ($msg->{'id'} > $self->{'model'}->lastMsgId());
+        $self->{'model'}->setLastMsgId($msg->{'id'}), if ($msg->{'id'} > $self->{'model'}->lastMsgId());
     }
 }
 
