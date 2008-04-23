@@ -168,6 +168,30 @@ sub totalNumUsers {
     return scalar(keys(%{ $s->{'db'} }));
 }
 
+# returns an hash ref with keys 's', 'm', 'h', and 'd' if appropriate.
+sub lastForID {
+    my ($s, $id) = @_;
+    my $r = undef; 
+
+    if (my $diff = (time() - $s->{db}->{"$id"}->{last}))
+    {
+        $r = {};
+
+        $r->{s} = $diff % 60;
+        $r->{m} = int($diff / 60);
+        $r->{h} = int($r->{m} / 60);
+        $r->{d} = int($r->{h} / 24);
+
+        $r->{m} %= 60;
+        $r->{h} %= 24;
+
+        # set to undef an values of 0, just in case
+        foreach (keys (%{$r})) { $r->{$_} = undef, unless ($r->{$_}); }
+    }
+
+    return $r;
+}
+
 sub recordsForID {
     my ($s, $id) = @_;
 

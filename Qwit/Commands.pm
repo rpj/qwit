@@ -161,7 +161,7 @@ sub qwitCommandHelp {
 
     $s->{'conn'}->sendDmsg("$id",
         "Available commands: " .
-        "today, total, loud, quiet, help, ratetoday, ratetotal, stats, [num]");
+        "today, total, loud, quiet, help, ratetoday, ratetotal, stats, last, [num]");
 }
 
 sub qwitCommandStats {
@@ -194,6 +194,34 @@ sub qwitCommandStats {
         "(stats) $total smoked, $today today; $rTotal hr/cig total; $rToday hr/cig today; " .
         "last was ${lastHr}h${lastMin}m ago; first was $firstStr");
 }
+
+sub __pluralize {
+    my ($n, $str) = @_;
+    my $r = "";
+
+    $r = ("$n " . ($n == 1 ? $str : "${str}s") . " "), if (defined($n));
+    return $r;
+}
+
+sub qwitCommandLast {
+    my ($s, $id) = @_;
+    my $msg = undef;
+
+    if (my $lr = $s->{'model'}->lastForID($id))
+    {
+        $msg = "Your last cigarette was " .
+            __pluralize($lr->{d}, "day") .
+            __pluralize($lr->{h}, "hour") . ($lr->{h} ? "and " : "") . 
+            __pluralize($lr->{m}, "minute") . "ago.";
+    }
+    else
+    {
+        $msg = "Don't have a last cigarette on record.";
+    }
+
+    $s->{'conn'}->sendDmsg("$id", "$msg"), if (defined($msg));
+}
+    
 
 # this is the only exported method
 sub runQwitCommand {
@@ -240,6 +268,10 @@ sub runQwitCommand {
     elsif ($cmd eq 'stats')
     {
         qwitCommandStats($s, $id);
+    }
+    elsif ($cmd eq 'last')
+    {
+        qwitCommandLast($s, $id);
     }
 
     # "god" commands
