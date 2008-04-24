@@ -70,13 +70,14 @@ sub qwitCommandConfig {
         if ($s->{'config'}->isKeyModifiable($keyToChg))
         {
             my $newVal = join(" ", @{ $wordsRef });
-            pdebug("Config command adjusting '$keyToChg' to '$newVal'");
 
             if ($s->{'config'}->setAllowedKey($keyToChg, $newVal)) {
                 $gMsg = "Config key '$keyToChg' has new value '$newVal'.";
             } else {
                 $gMsg = "Error setting '$keyToChg' to '$newVal'.";
             }
+
+            pdebug("$gMsg");
         }
         elsif ($keyToChg eq 'list')
         {

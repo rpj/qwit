@@ -113,7 +113,7 @@ sub collectDmsgs {
                     );
 
     pdebug("Found " . scalar(@{$dmsgs}) . " new dMessages; collecting."),
-        if (scalar(@{$dmsgs}));
+        if (defined($dmsgs) && scalar(@{$dmsgs}));
 
     foreach my $dmsg (@{$dmsgs}) {
         pdebugl(2, "New direct message id $dmsg->{id}.");

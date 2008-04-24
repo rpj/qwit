@@ -149,7 +149,7 @@ sub setDebugLevel {
 sub setSleepDelay {
     my ($s, $d) = @_;
 
-    if ($d =~ /^\d+$/ && int($d) > 60) {
+    if ($d =~ /^\d+$/ && int($d) >= 30) {
         $s->{'conf'}->{'sleepdelay'} = int($d);
 
         return 1;
