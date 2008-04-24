@@ -4,6 +4,8 @@ use strict;
 use warnings;
 
 use Qwit::Debug;
+use Qwit::Config;
+
 use Time::HiRes qw(gettimeofday tv_interval);
 use Time::Local qw(timelocal);
 
@@ -63,15 +65,24 @@ sub dumpDB {
     pdebugl(2, "dumpDB finished in " . tv_interval($t0) . " seconds.");
 }
 
+sub backupDB() {
+    my $s = shift;
+    my $bDir = Qwit::Config::singleton()->backupDir() || '';
+
+    mkdir($bDir), if (defined($bDir) && !(-e $bDir));
+    my $bStr = $bDir . ($bDir eq '' ? '.' : '/') . "$s->{file}." . time() . ".backup";
+
+    pdebugl(2, "Backing database up to ./${bStr}");
+    `cp ./$s->{file} ./$bStr`;
+}
+
 sub reloadDB() {
     my $s = shift;
     my $t0 = [gettimeofday()];
     my $f = $s->{'file'};
 
     if ($f && -e $f) {
-        my $bStr = ".$f." . time()  . ".backup";
-        `cp $f $bStr`;
-
+        $s->backupDB();
         open (DBR, "./$f") or die "reloadDB failed on ./$f: $!\n\n";
 
         my $db = $s->{'db'} = {};

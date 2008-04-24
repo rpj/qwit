@@ -10,17 +10,24 @@ use Data::Dumper;
 
 my $ModifiableKeys = "debuglevel sleepdelay";
 my $AllKeys = "debuglevel sleepdelay username password clientname " .
-                "delaymult dbfile godid heartbeatfile";
+                "delaymult dbfile godid heartbeatfile backupdir";
+
+my $SingletonObject = undef;
 
 sub new {
     my $c = shift;
     my %conf = @_;
     my $s = {};
 
-    bless ($s, $c);
-    $s->{'conf'} = { %conf }, if (%conf);
+    unless (defined($SingletonObject))
+    {
+        bless ($s, $c);
+        $s->{'conf'} = { %conf }, if (%conf);
 
-    return $s->init();
+        return ($SingletonObject = $s->init());
+    }
+
+    return $SingletonObject;
 }
 
 sub init {
@@ -43,6 +50,10 @@ sub init {
 
     pdebugl(3, "Qwit::Config::init has hash: ". Dumper($s->{'twitterConf'}));
     return $ret;
+}
+
+sub singleton {
+    return $SingletonObject;
 }
 
 sub __load_config_from_file {
@@ -105,6 +116,10 @@ sub debugLevel {
 
 sub heartbeatFile {
     return (shift)->{'conf'}->{'heartbeatfile'};
+}
+
+sub backupDir {
+    return (shift)->{'conf'}->{'backupdir'};
 }
 
 sub isKeyModifiable {
