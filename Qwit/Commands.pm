@@ -94,7 +94,8 @@ sub qwitCommandIncrement {
 
     my $uRef = $s->{'model'}->hashForID("$id");
 
-    my $saveLast = $uRef->{'last'};
+    my $lr = $s->{'model'}->lastForID($id);
+
     $uRef->{'total'} += $num;
     $uRef->{'last'} = time;
     push (@{$uRef->{'enum'}}, [ $num, $uRef->{'last'}, $create ]);  
@@ -105,12 +106,11 @@ sub qwitCommandIncrement {
         my $today = $s->{'model'}->numTodayForID($id);
         my $pl = ($num == 1) ? "that one" : "those $num";
 
-        my $lr = $s->{'model'}->lastForID($id);
         my $lstr = __pluralize($lr->{d}, "day") . __pluralize($lr->{h}, "hr") .
             __pluralize($lr->{m}, "min");
 
         my $msg = "Including $pl, you've smoked $today cigarette(s) today. " .
-            "It had been ${lstr}since your last.";
+            "Your last was ${lstr}ago.";
         $s->{'conn'}->sendDmsg("$id", "$msg");
     }
 
@@ -194,7 +194,7 @@ sub qwitCommandStats {
 
     my $lr = $s->{'model'}->lastForID($id);
     my $lstr = __pluralize($lr->{d}, "day") . __pluralize($lr->{h}, "hr") .
-        __pluralize($lr->{m}, "min");
+        __pluralize($lr->{m}, "min") . __pluralize($lr->{s}, "sec");
 
     $s->{'conn'}->sendDmsg("$id",
         "(stats) $total smoked, $today today; $rTotal hr/cig total; $rToday hr/cig today; " .
