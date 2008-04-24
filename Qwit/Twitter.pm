@@ -108,10 +108,15 @@ sub collectDmsgs {
     my $aRef = shift;
     $aRef = [], unless (defined($aRef));
 
-    my $dmsgs = $s->{'conn'}->direct_messages( { since_id => $s->{'model'}->lastMsgId() } );
+    my $dmsgs = $s->__check_and_accum(
+                    $s->{'conn'}->direct_messages( { since_id => $s->{'model'}->lastMsgId() } )
+                    );
+
+    pdebug("Found " . scalar(@{$dmsgs}) . " new dMessages; collecting."),
+        if (scalar(@{$dmsgs}));
 
     foreach my $dmsg (@{$dmsgs}) {
-        pdebug("New direct message id $dmsg->{id} found; collecting.");
+        pdebugl(2, "New direct message id $dmsg->{id}.");
         push (@{$aRef}, $dmsg); 
     }
 

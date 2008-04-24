@@ -31,7 +31,7 @@ sub dumpDB {
     my $s = shift;
     my $t0 = [gettimeofday()];
 
-    open (DBF, ">$s->{file}") or
+    open (DBF, ">./$s->{file}") or
         die "Couldn't open DB file '$s->{file}'! $!\n\n";
 
     print DBF "LAST_ID|$s->{lastMsgId}\n";
@@ -72,7 +72,7 @@ sub reloadDB() {
         my $bStr = ".$f." . time()  . ".backup";
         `cp $f $bStr`;
 
-        open (DBR, "$f");
+        open (DBR, "./$f") or die "reloadDB failed on ./$f: $!\n\n";
 
         my $db = $s->{'db'} = {};
         pdebug("Reloading database:");

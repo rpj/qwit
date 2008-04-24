@@ -9,6 +9,8 @@ use Qwit::Debug;
 use Data::Dumper;
 
 my $ModifiableKeys = "debuglevel sleepdelay";
+my $AllKeys = "debuglevel sleepdelay username password clientname " .
+                "delaymult dbfile godid heartbeatfile";
 
 sub new {
     my $c = shift;
@@ -52,7 +54,7 @@ sub __load_config_from_file {
 
     while (<CONF>) {
         # match 'key = var' style lines
-        if (/^(\w+)\s+\=\s+(.*?)$/ig) {
+        if (/^(\w+)\s+\=\s+(.*?)$/ig && $s->isKeyAllowed($1)) {
             $s->{'conf'}->{$1} = $2;    
             $count++;
 
@@ -63,6 +65,10 @@ sub __load_config_from_file {
             {
                 $s->{'twitterConf'}->{$1} = $2;
             }
+        }
+        else
+        {
+            pdebug("Bad key '$1' for value '$2' in config.");
         }
     }
 
@@ -97,10 +103,20 @@ sub debugLevel {
     return (shift)->{'conf'}->{'debuglevel'};
 }
 
+sub heartbeatFile {
+    return (shift)->{'conf'}->{'heartbeatfile'};
+}
+
 sub isKeyModifiable {
     my ($s, $k) = @_;
 
     return (index($ModifiableKeys, $k) >= 0);
+}
+
+sub isKeyAllowed {
+    my ($s, $k) = @_;
+
+    return (index($AllKeys, $k) >= 0);
 }
 
 sub setAllowedKey {

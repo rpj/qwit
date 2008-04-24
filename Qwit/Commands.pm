@@ -50,9 +50,9 @@ sub qwitCommandStatus {
 
     my $str = "(status) Up since $sUptime" .
         ", ${dD}d${dH}h${dM}m${dS}s; $numReqs reqs, ~" .
-        sprintf("%0.1f", +(($numReqs / $tDiff) / 60 / 60)) . "/hr; " . 
+        sprintf("%0.1f", +($numReqs / ($tDiff / 60 / 60))) . "/hr; " . 
         $s->{'model'}->totalNumUsers() . 
-        " users; " . int($s->{'config'}->sleepDelay() / 60) . "m delay.";
+        " users; " . sprintf("%0.1f", ($s->{'config'}->sleepDelay() / 60)) . "m delay.";
 
     $s->{'conn'}->sendDmsg($s->{'config'}->god(), $str);
 }
@@ -106,6 +106,7 @@ sub qwitCommandIncrement {
         my $today = $s->{'model'}->numTodayForID($id);
         my $pl = ($num == 1) ? "that one" : "those $num";
 
+        $lr->{m}++, if (!$lr->{m} && !$lr->{h} && !$lr->{d});
         my $lstr = __pluralize($lr->{d}, "day") . __pluralize($lr->{h}, "hr") .
             __pluralize($lr->{m}, "min");
 
@@ -193,8 +194,9 @@ sub qwitCommandStats {
     my $firstStr = sprintf("%0.2f days ago", ($firstDiff / 60.0 / 60.0 /24.0));
 
     my $lr = $s->{'model'}->lastForID($id);
+    $lr->{m}++, if (!$lr->{m} && !$lr->{h} && !$lr->{d});
     my $lstr = __pluralize($lr->{d}, "day") . __pluralize($lr->{h}, "hr") .
-        __pluralize($lr->{m}, "min") . __pluralize($lr->{s}, "sec");
+        __pluralize($lr->{m}, "min"); 
 
     $s->{'conn'}->sendDmsg("$id",
         "(stats) $total smoked, $today today; $rTotal hr/cig total; $rToday hr/cig today; " .

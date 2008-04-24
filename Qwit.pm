@@ -84,46 +84,79 @@ sub runLoop {
 
     $s->{'uptime'} = time();
     $s->{'lastWake'} = 0;
+    $s->{'lastFollowerCheck'} = 0;
     
     $s->{'model'}->reloadDB();
 
-    while ($s->{'run'}) {
-        if ((($now = time()) - $s->{'lastWake'}) > ($s->{'config'}->sleepDelay() * $dMult)) {
-            $s->{'lastWake'} = $now;
+    while ($s->{'run'}) 
+    {
+        if (my $hbf = $s->{'config'}->heartbeatFile())
+        {
+            open (HBF, "+>./$hbf") or warn "hbfile $hbf: $!\n\n";
+            print HBF "$s->{uptime} $s->{lastWake} $s->{lastFollowerCheck}";
+            close (HBF);
+        }
+
+        if ((($now = time()) - $s->{'lastWake'}) > ($s->{'config'}->sleepDelay() * $dMult)) 
+        {
             pdebugl(2, "Awake...");
 
-            if ($s->{'conn'}->checkFollowing()) {
-                # send 'god' a message if we came out of a delay
-                if ($dMult > 1) {
-                    $s->{'conn'}->sendDmsg($s->{'config'}->god(),
-                        "Reconnected after delay of " .
-                         int(($s->{'config'}->sleepDelay() * $dMult) / 60) .
-                         "m. Last error was '$s->{lastErrorCode}: $s->{lastErrorMsg}'");
+            $s->{'lastWake'} = $now;
+            my $errStr = undef;
 
-                    $dMult = 1;
+            my @msgsRef = @{ $s->{'conn'}->collectDmsgs() };
+            if ($s->{'conn'}->http_code() == 200)
+            {
+                if (($now - $s->{'lastFollowerCheck'}) > (30 * 60))
+                {   # only run follower check twice an hour
+                    pdebug("Checking for new followers...");
+
+                    if ($s->{'conn'}->checkFollowing()) {
+                        $s->{'lastFollowerCheck'} = $now;
+                    }
+                    else {
+                        $errStr = "follower check"; 
+                    }
                 }
 
-                # messages are collected in reverse order because of the
-                # push() used, so we reverse the overall resulting array
-                my @msgsRef = reverse(@{ 
-                                $s->{'conn'}->collectDmsgs([])
-                                });
-
-                $s->processMessages(\@msgsRef);
+                if (scalar(@msgsRef))
+                {
+                    @msgsRef = reverse(@msgsRef);
+                    $s->processMessages(\@msgsRef);
+                }
             }
             else
+            {
+                $errStr = "direct message collection";
+            }
+
+            if (defined($errStr))
             {
                 # only bump the delay when we get a HTTP 400 back, which usually means we're rate limited
                 $s->{'lastErrorCode'} = $s->{'conn'}->http_code();
                 $s->{'lastErrorMsg'} = $s->{'conn'}->http_message();
+                $s->{'lastErrorStr'} = $errStr;
+
                 $dMult *= $s->{'config'}->delayMult(), if ($s->{'lastErrorCode'} == 400);
 
-                pdebug("Connectivity issue ($s->{lastErrorCode}); bumping delay to " .
-                    int(($s->{'config'}->sleepDelay() * $dMult) / 60) . " minutes.");
+                pdebug("Error in $errStr (HTTP $s->{lastErrorCode}); delay is now " .
+                    sprintf("%0.1f", (($s->{'config'}->sleepDelay() * $dMult)
+                    / 60)) . " minutes.");
+            } 
+            elsif ($dMult > 1)
+            {
+               $s->{'conn'}->sendDmsg($s->{'config'}->god(),
+                    "Reconnected after " .
+                     sprintf("%0.1f", (($s->{'config'}->sleepDelay() * $dMult)
+                     / 60)) .
+                     "m. Last error was '$s->{lastErrorCode}: " .
+                     "$s->{lastErrorMsg}' in $s->{lastErrorStr}.");
+
+                $dMult = 1;
             }
         }
 
-        sleep(1);
+        sleep(2);   # my webserver runs really fast, so 2 ~= 1 on it!
     }
 
     qprint "Quitting; dumping database...";
