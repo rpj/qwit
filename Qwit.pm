@@ -93,7 +93,8 @@ sub runLoop {
         if (my $hbf = $s->{'config'}->heartbeatFile())
         {
             open (HBF, "+>./$hbf") or warn "hbfile $hbf: $!\n\n";
-            print HBF "$s->{uptime} $s->{lastWake} $s->{lastFollowerCheck}";
+            print HBF "$s->{uptime} $s->{lastWake} $s->{lastFollowerCheck} " .
+                $s->{'conn'}->numRequestsProcessed();
             close (HBF);
         }
 
@@ -156,7 +157,7 @@ sub runLoop {
             }
         }
 
-        sleep(2);   # my webserver runs really fast, so 2 ~= 1 on it!
+        sleep(2);   # my webserver runs really fast, so 2 ~= 1!
     }
 
     qprint "Quitting; dumping database...";
