@@ -91,7 +91,7 @@ sub qwitCommandConfig {
 
 sub qwitCommandIncrement {
     my $s = shift;
-    my ($id, $num, $create) = @_;
+    my ($id, $num, $create, $words) = @_;
 
     my $uRef = $s->{'model'}->hashForID("$id");
 
@@ -99,7 +99,23 @@ sub qwitCommandIncrement {
 
     $uRef->{'total'} += $num;
     $uRef->{'last'} = time;
-    push (@{$uRef->{'enum'}}, [ $num, $uRef->{'last'}, $create ]);  
+
+    my @pushArr = ($num, $uRef->{last}, $create);
+    my $addStr = "";
+
+    if (scalar(@{$words}) && (my $sc = $words->[0]))
+    {
+        if ($s->{'model'}->lookupBrandByShort($id, $sc))
+        {
+            push (@pushArr, $sc); 
+        }
+        else
+        {
+            $addStr = " (Err: invalid brand)";
+        }
+    }
+
+    push (@{$uRef->{'enum'}}, \@pushArr);
 
     pdebug("Got '$num' from '$id'; new total is $uRef->{total}."); 
 
@@ -112,7 +128,7 @@ sub qwitCommandIncrement {
             __pluralize($lr->{m}, "min");
 
         my $msg = "Including $pl, you've smoked $today cigarette(s) today. " .
-            "Your last was ${lstr}ago.";
+            "Your last was ${lstr}ago.$addStr";
         $s->{'conn'}->sendDmsg("$id", "$msg");
     }
 
@@ -223,6 +239,38 @@ sub qwitCommandLast {
     $s->{'conn'}->sendDmsg("$id", "$msg"), if (defined($msg));
 }
     
+sub qwitCommandBrand {
+    my ($s, $id, $words) = @_;
+
+    if ($s && $id && $words)
+    { 
+        if (scalar(@{$words}) >= 2)
+        {
+            my $short = $words->[0];
+            my $brand = join(" ", @{$words}[1 .. $#{$words}]);
+
+            pdebugl(2, "New brand '$brand' (short '$short') for $id");
+            if ($s->{'model'}->addBrandForID($id, $brand, $short))
+            {
+                $s->{'conn'}->sendDmsg("$id",
+                    "New brand '$brand' added with shortcode '$short': " .
+                    "use this code when updating.");
+            }
+            else
+            {
+                $s->{'conn'}->sendDmsg("$id", "Unable to add brand '$brand'.");
+            }
+        }
+        else
+        {
+            my $str = "Your current brands: ";
+            my $brs = $s->{'model'}->brandsForID($id);
+            $str .= "$brs->{$_} ($_); ", foreach (keys(%{$brs}));
+
+            $s->{conn}->sendDmsg("$id", $str);
+        }
+    }
+}
 
 # this is the only exported method
 sub runQwitCommand {
@@ -233,7 +281,7 @@ sub runQwitCommand {
 
     if ($cmd =~ /(\d+)/) 
     {
-        qwitCommandIncrement($s, $id, $1, $create);
+        qwitCommandIncrement($s, $id, $1, $create, $wordsRef);
     }
     elsif ($cmd eq 'today') 
     {
@@ -273,6 +321,10 @@ sub runQwitCommand {
     elsif ($cmd eq 'last')
     {
         qwitCommandLast($s, $id);
+    }
+    elsif ($cmd eq 'brand')
+    {
+        qwitCommandBrand($s, $id, $wordsRef);
     }
 
     # "god" commands

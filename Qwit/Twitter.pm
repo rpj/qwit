@@ -34,6 +34,10 @@ sub init {
     $self->{'conf'} = $self->{'config'}->twitterConf();
     $self->{'conn'} = Net::Twitter->new(%{ $self->{'conf'} });
 
+    $self->{reqInfo} = {};
+    $self->{reqInfo}->{count} = 0;
+    $self->{reqInfo}->{last} = 0;
+
     return $self;
 }
 
@@ -44,7 +48,6 @@ sub numRequestsProcessed {
 sub __accum_request {
     my $self = shift;
 
-    $self->{'reqInfo'} = {}, unless (defined($self->{'reqInfo'}));
     $self->{'reqInfo'}->{'last'} = time();
     $self->{'reqInfo'}->{'count'}++;
 

@@ -50,11 +50,24 @@ sub dumpDB {
             print DBF "\n";
         }
 
+        # users options
         if ($u->{'options'}) {
             print DBF "O|$k";
 
             foreach my $optKey (keys %{$u->{'options'}}) {
                 print DBF "|$optKey", if ($u->{'options'}->{"$optKey"});
+            }
+
+            print DBF "\n";
+        }
+
+        # users brands
+        if ((my $b = $u->{brands}))
+        {
+            print DBF "B|$k";
+
+            foreach my $bk (keys %{$b}) {
+                print DBF "|$bk=$b->{$bk}";
             }
 
             print DBF "\n";
@@ -104,9 +117,17 @@ sub reloadDB() {
             elsif ($k eq 'O') {
                 $k = $i[1];
 
-                my $c = 2;
-                for ($c = 2; $c < scalar(@i); $c++) {
+                for (my $c = 2; $c < scalar(@i); $c++) {
                     $db->{"$k"}->{'options'}->{"$i[$c]"} = 1;
+                }
+            }
+            elsif ($k eq 'B')
+            {
+                $k = $i[1];
+
+                for (my $c = 2; $c < scalar(@i); $c++) {
+                    my ($short, $brand) = split(/=/, $i[$c]);
+                    $db->{"$k"}->{brands}->{"$short"} = $brand;
                 }
             }
             else {
@@ -134,8 +155,40 @@ sub setLastMsgId {
     $s->dumpDB();
 }
 
+sub addBrandForID {
+    my ($s, $id, $brand, $short) = @_;
+    my $ret = undef;
+    my $uh = undef;
+
+    if ($s && $id && ($uh = $s->{'db'}->{"$id"}) && $brand && $short)
+    {
+        $uh->{brands} = {}, unless ($uh->{brands});
+        $ret = $uh->{brands}->{"$short"} = $brand;
+    }
+
+    return $ret;
+}
+
 # getters 
 # # # # # #
+sub lookupBrandByShort {
+    my ($s, $id, $short) = @_;
+    my $uh = undef;
+
+    if (($uh = $s->{'db'}->{"$id"}) && $uh->{brands})
+    {
+        return $uh->{brands}->{"$short"};
+    }
+
+    return undef;
+}
+
+sub brandsForID {
+    my ($s, $id) = @_;
+
+    return $s->{'db'}->{"$id"} ? $s->{'db'}->{"$id"}->{brands} : undef;
+}
+
 sub lastMsgId {
     return (shift)->{'lastMsgId'};
 }
