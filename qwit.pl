@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-our $VERSION = 0.40;
+our $VERSION = 0.45;
 
 my $confFile = $ARGV[0] || 'qwit.config';
 

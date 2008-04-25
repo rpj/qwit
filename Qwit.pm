@@ -140,7 +140,7 @@ sub runLoop {
 
                 $dMult *= $s->{'config'}->delayMult(), if ($s->{'lastErrorCode'} == 400);
 
-                pdebug("Error in $errStr (HTTP $s->{lastErrorCode}); delay is now " .
+                qprint("Error in $errStr (HTTP $s->{lastErrorCode}); delay is now " .
                     sprintf("%0.1f", (($s->{'config'}->sleepDelay() * $dMult)
                     / 60)) . " minutes.");
             } 

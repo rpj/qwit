@@ -62,8 +62,8 @@ sub __check_last_request {
     my $code = $self->{'conn'}->http_code();
     
     if ($code >= 400) {
-        pdebug("Last request returned an HTTP error $code:");
-        pdebug("\t'" . $self->{'conn'}->http_message() . "'");
+        qprint("Last request returned an HTTP error $code:");
+        qprint("\t'" . $self->{'conn'}->http_message() . "'");
 
         return undef;
     }
