@@ -29,7 +29,8 @@ sub init {
         $self->{'config'} = Qwit::Config->new(%{ $self->{'confHash'} });
 
         if ($self->{'config'}) {
-            if ((my $dbLvl = $self->{'config'}->debugLevel())) {
+            if (defined(my $dbLvl = $self->{'config'}->debugLevel())) {
+                pdebug("Setting debug level from config to $dbLvl");
                 Qwit::Debug::setDebugLevel($dbLvl);
             }
 
