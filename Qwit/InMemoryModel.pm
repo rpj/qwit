@@ -9,6 +9,8 @@ use Qwit::Config;
 use Time::HiRes qw(gettimeofday tv_interval);
 use Time::Local qw(timelocal);
 
+use Fcntl ':flock';
+
 sub new {
     my $c = shift;
     my $sFile = shift;
@@ -26,7 +28,13 @@ sub init {
     $s->{'db'} = {};
     $s->{'lastMsgId'} = 0;
 
-    return $s;
+    if ($s->{'file'}) {
+        $s->reloadDB();
+        return $s;
+    }
+    else {
+        return undef;
+    }
 }
 
 sub dumpDB {
@@ -35,6 +43,9 @@ sub dumpDB {
 
     open (DBF, ">./$s->{file}") or
         die "Couldn't open DB file '$s->{file}'! $!\n\n";
+
+    flock(DBF, LOCK_EX) or 
+        die "Unable to obtain LOCK_EX on $s->{file}: $!\n\n";
 
     print DBF "LAST_ID|$s->{lastMsgId}\n";
 
@@ -74,6 +85,7 @@ sub dumpDB {
         }
     }
 
+    flock(DBF, LOCK_UN);
     close (DBF);
     pdebugl(2, "dumpDB finished in " . tv_interval($t0) . " seconds.");
 }
@@ -97,6 +109,9 @@ sub reloadDB() {
     if ($f && -e $f) {
         $s->backupDB();
         open (DBR, "./$f") or die "reloadDB failed on ./$f: $!\n\n";
+        
+        flock(DBR, LOCK_SH) or 
+            die "Unable to obtain LOCK_SH on $f: $!\n\n";
 
         my $db = $s->{'db'} = {};
         pdebug("Reloading database:");
@@ -136,6 +151,7 @@ sub reloadDB() {
             }
         }
 
+        flock(DBR, LOCK_UN);
         close (DBR);
 
         pdebug("Loaded " . scalar(keys(%{$db})) . " unique users");

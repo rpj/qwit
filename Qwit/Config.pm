@@ -53,6 +53,13 @@ sub init {
 }
 
 sub singleton {
+    my $class = shift;
+    my $cFile = shift;
+
+    if (!(defined($SingletonObject))) {
+        $SingletonObject = Qwit::Config->new('configfile' => $cFile);
+    }
+
     return $SingletonObject;
 }
 

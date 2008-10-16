@@ -91,7 +91,7 @@ sub followers {
 
 sub following {
     my $self = shift;
-    return $self->__check_and_accum($self->{'conn'}->following());
+    return $self->__check_and_accum($self->{'conn'}->friends());
 }
 
 # pass thrus
