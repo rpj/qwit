@@ -151,23 +151,23 @@ sub adjustSleepViaRateInfo($$) {
     my $lrr = $self->{reqInfo}->{lastRateRatio};
     my $addr = 0;
 
-    if ($rr < $self->{reqInfo}->{lastRateRatio})
+    if ($rr < $self->{reqInfo}->{lastRateRatio} && $rr > 0.0)
     {
-        my $diff = $lrr - $rr;
+        my $diff = ($lrr - $rr) * 100.0;
         my $lnr = $lrr / $rr;
 	    $addr = int(($diff * $ruone * $lnr) + 0.5 + $self->{reqInfo}->{contAdj});
 	    pdebugl(3, " -- ratio has negative slope! rr = $rr, last = $lrr, contAdj = $self->{reqInfo}->{contAdj}");
 	    pdebugl(3, " -- diff = $diff, lnr = $lnr, addr = $addr (ur = $ruone)");
-	    $self->{reqInfo}->{contAdj} += 0.25;
+	    $self->{reqInfo}->{contAdj} += 1.0;
     }
     else { 
-        $self->{reqInfo}->{contAdj} = 0; 
+        $self->{reqInfo}->{contAdj} = 0;
     }
 
     my $rv = ($rr > $RATE_RATIO_LOW_LIMIT ? int(($sleep * (1 / $rr)) + $addr) : $ruone);
 
     pdebugl(3, " -- adjustSleepViaRateInfo($sleep, $lowlim): with ratio == $rr && inv == ". 
-        (1 / $rr) .", addr = $addr; adjusted value is $rv");
+        ($rr > 0 ? (1 / $rr) : "NaN") .", addr = $addr; adjusted value is $rv");
 
     $self->{reqInfo}->{lastRateRatio} = $rr;
     return ($rv < $lowlim ? $sleep : $rv);

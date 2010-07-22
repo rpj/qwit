@@ -128,7 +128,7 @@ sub reloadDB() {
             die "Unable to obtain LOCK_SH on $f: $!\n\n";
 
         my $db = $s->{'db'} = {};
-        pdebug("Reloading database:");
+        pdebugl(4, "Reloading database:");
 
         while (<DBR>) {
             chomp();
@@ -137,7 +137,7 @@ sub reloadDB() {
 
             if ($k eq 'LAST_ID') {
                 $s->{'lastMsgId'} = $i[1];
-                pdebug("LastMsgId is $s->{lastMsgId}");
+                pdebugl(4, "LastMsgId is $s->{lastMsgId}");
             }
             elsif ($k eq 'E') {
                 $k = $i[1];
@@ -168,7 +168,7 @@ sub reloadDB() {
         flock(DBR, LOCK_UN);
         close (DBR);
 
-        pdebug("Loaded " . scalar(keys(%{$db})) . " unique users");
+        pdebugl(4, "Loaded " . scalar(keys(%{$db})) . " unique users");
     }
 
     pdebug("reloadDB finished in " . tv_interval($t0) . " seconds.");
