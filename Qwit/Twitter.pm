@@ -51,7 +51,7 @@ sub init {
     $self->{'conn'} = Net::Twitter->new(%{ $self->{'conf'} });
 
     $self->{reqInfo} = {};
-    $self->{reqInfo}->{last} = 0;
+    $self->{reqInfo}->{contAdj} = $self->{reqInfo}->{last} = 0;
 
     $self->__update_rate_limit_info();
 
@@ -134,7 +134,6 @@ sub updateStatus {
     my $self = shift;
     my $msg = shift;
 
-    qprint("updateStatus('$msg') with $self->{conn}");
     return $self->__check_and_accum($self->{conn}->update($msg));
 }
 
@@ -149,15 +148,20 @@ sub adjustSleepViaRateInfo($$) {
     my $lowlim = shift;
     my $rr = $self->{conn}->rate_ratio();
     my $ruone = $self->{conn}->until_rate(1.0);
+    my $lrr = $self->{reqInfo}->{lastRateRatio};
     my $addr = 0;
 
     if ($rr < $self->{reqInfo}->{lastRateRatio})
     {
-        my $diff = $self->{reqInfo}->{lastRateRatio} - $rr;
-	my $lnr = $self->{reqInfo}->{lastRateRatio} / $rr;
-	$addr = int(($diff * $ruone * $lnr) + 0.5);
-	pdebugl(3, " -- ratio has negative slope! rr = $rr, last = $self->{reqInfo}->{lastRateRatio}");
-	pdebugl(3, " -- diff = $diff, lnr = $lnr, addr = $addr (ur = $ruone)");
+        my $diff = $lrr - $rr;
+        my $lnr = $lrr / $rr;
+	    $addr = int(($diff * $ruone * $lnr) + 0.5 + $self->{reqInfo}->{contAdj});
+	    pdebugl(3, " -- ratio has negative slope! rr = $rr, last = $lrr, contAdj = $self->{reqInfo}->{contAdj}");
+	    pdebugl(3, " -- diff = $diff, lnr = $lnr, addr = $addr (ur = $ruone)");
+	    $self->{reqInfo}->{contAdj} += 0.25;
+    }
+    else { 
+        $self->{reqInfo}->{contAdj} = 0; 
     }
 
     my $rv = ($rr > $RATE_RATIO_LOW_LIMIT ? int(($sleep * (1 / $rr)) + $addr) : $ruone);
