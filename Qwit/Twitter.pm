@@ -9,6 +9,9 @@ use Exporter qw(import);
 
 use Data::Dumper;
 
+our $RATE_RATIO_LOW_LIMIT = 0.25;
+our $MIN_SLEEP_TIME_COEFF = 5;
+
 sub new {
     my $class = shift;
     my $conf = shift;
@@ -28,6 +31,19 @@ sub new {
     return undef;
 }
 
+sub __update_rate_limit_info {
+    my $self = shift;
+    my $rls = $self->{conn}->rate_limit_status();
+
+    $self->{reqInfo}->{limit} = $rls->{hourly_limit};
+    $self->{reqInfo}->{remaining} = $rls->{remaining_hits};
+    $self->{reqInfo}->{count} = $self->{reqInfo}->{limit} - $self->{reqInfo}->{remaining};
+    $self->{reqInfo}->{resetTime} = $rls->{reset_time_in_seconds};
+    $self->{reqInfo}->{lastRateRatio} = $self->{conn}->rate_ratio();
+
+    pdebugl(3, "__update_rate_limit_info: " . Data::Dumper::Dumper($self->{reqInfo}));
+}
+
 sub init {
     my $self = shift;
 
@@ -35,8 +51,9 @@ sub init {
     $self->{'conn'} = Net::Twitter->new(%{ $self->{'conf'} });
 
     $self->{reqInfo} = {};
-    $self->{reqInfo}->{count} = 0;
     $self->{reqInfo}->{last} = 0;
+
+    $self->__update_rate_limit_info();
 
     return $self;
 }
@@ -50,9 +67,16 @@ sub __accum_request {
 
     $self->{'reqInfo'}->{'last'} = time();
     $self->{'reqInfo'}->{'count'}++;
+    $self->{reqInfo}->{remaining}--;
 
-    push (  @{$self->{'reqInfo'}->{'enum'}}, 
-            [ $self->{'reqInfo'}->{'count'}, $self->{'reqInfo'}->{'last'} ]);
+    my $intRm = $self->{reqInfo}->{limit} - $self->{reqInfo}->{count};
+    pdebugl(1, "Internal count ($intRm) doesn't match external ($self->{reqInfo}->{remaining})"),
+    	if ($intRm != $self->{reqInfo}->{remaining}); 
+
+    $self->__update_rate_limit_info(), if (time() > $self->{reqInfo}->{resetTime});
+
+    #push (  @{$self->{'reqInfo'}->{'enum'}}, 
+    #        [ $self->{'reqInfo'}->{'count'}, $self->{'reqInfo'}->{'last'} ]);
 
     pdebugl(2, "Accumlated a request: now at $self->{reqInfo}->{count}");
 }
@@ -104,6 +128,49 @@ sub sendDmsg {
     my $msg = shift;
 
     return $s->{'conn'}->new_direct_message( { user => "$to", text => "$msg" } );
+}
+
+sub updateStatus {
+    my $self = shift;
+    my $msg = shift;
+
+    qprint("updateStatus('$msg') with $self->{conn}");
+    return $self->__check_and_accum($self->{conn}->update($msg));
+}
+
+sub rateRatio {
+    my $self = shift;
+    return $self->{conn}->rate_ratio();
+}
+
+sub adjustSleepViaRateInfo($$) {
+    my $self = shift;
+    my $sleep = shift;
+    my $lowlim = shift;
+    my $rr = $self->{conn}->rate_ratio();
+    my $ruone = $self->{conn}->until_rate(1.0);
+    my $addr = 0;
+
+    if ($rr < $self->{reqInfo}->{lastRateRatio})
+    {
+        my $diff = $self->{reqInfo}->{lastRateRatio} - $rr;
+	my $lnr = $self->{reqInfo}->{lastRateRatio} / $rr;
+	$addr = int(($diff * $ruone * $lnr) + 0.5);
+	pdebugl(3, " -- ratio has negative slope! rr = $rr, last = $self->{reqInfo}->{lastRateRatio}");
+	pdebugl(3, " -- diff = $diff, lnr = $lnr, addr = $addr (ur = $ruone)");
+    }
+
+    my $rv = ($rr > $RATE_RATIO_LOW_LIMIT ? int(($sleep * (1 / $rr)) + $addr) : $ruone);
+
+    pdebugl(3, " -- adjustSleepViaRateInfo($sleep, $lowlim): with ratio == $rr && inv == ". 
+        (1 / $rr) .", addr = $addr; adjusted value is $rv");
+
+    $self->{reqInfo}->{lastRateRatio} = $rr;
+    return ($rv < $lowlim ? $sleep : $rv);
+}
+
+sub minSleepTimeAllowed() {
+    return int((((shift)->{reqInfo}->{limit} / 3600) + 1.5) * $MIN_SLEEP_TIME_COEFF);
 }
 
 sub collectDmsgs {

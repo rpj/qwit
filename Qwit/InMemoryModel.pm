@@ -11,6 +11,8 @@ use Time::Local qw(timelocal);
 
 use Fcntl ':flock';
 
+our $DEFAULT_BACKUP_FREQ = 10;
+
 sub new {
     my $c = shift;
     my $sFile = shift;
@@ -27,6 +29,11 @@ sub init {
 
     $s->{'db'} = {};
     $s->{'lastMsgId'} = 0;
+    $s->{'lastBackup'} = 0;
+
+    my $qc = Qwit::Config::singleton();
+    $s->{'backupDir'} = $qc->backupDir() || '';
+    $s->{'backupFreq'} = $qc->backupFreq() || $DEFAULT_BACKUP_FREQ;
 
     if ($s->{'file'}) {
         $s->reloadDB();
@@ -41,7 +48,7 @@ sub dumpDB {
     my $s = shift;
     my $t0 = [gettimeofday()];
 
-    open (DBF, ">./$s->{file}") or
+    open (DBF, ">$s->{file}") or
         die "Couldn't open DB file '$s->{file}'! $!\n\n";
 
     flock(DBF, LOCK_EX) or 
@@ -92,13 +99,20 @@ sub dumpDB {
 
 sub backupDB() {
     my $s = shift;
-    my $bDir = Qwit::Config::singleton()->backupDir() || '';
+    my $bDir = $s->{backupDir};
+    my $now = time();
 
-    mkdir($bDir), if (defined($bDir) && !(-e $bDir));
-    my $bStr = $bDir . ($bDir eq '' ? '.' : '/') . "$s->{file}." . time() . ".backup";
+    if (!$s->{lastBackup} || ($now - $s->{lastBackup} > $s->{backupFreq} * 60))
+    {
+        `mkdir -p $bDir`, if (defined($bDir) && !(-e $bDir));
+        (my $lpc = $s->{file}) =~ s/.*\///ig;
+        my $bStr = $bDir . ($bDir eq '' ? '' : '/') . ($bDir eq '' ? "$s->{file}" : $lpc) . "." . 
+	    int(time() / ($s->{backupFreq} * 60)) . ".backup";
 
-    pdebugl(2, "Backing database up to ./${bStr}");
-    `cp ./$s->{file} ./$bStr`;
+        pdebugl(2, "Backing database up to ${bStr}");
+        `cp $s->{file} $bStr`;
+	$s->{lastBackup} = $now;
+    }
 }
 
 sub reloadDB() {
@@ -108,8 +122,8 @@ sub reloadDB() {
 
     if ($f && -e $f) {
         $s->backupDB();
-        open (DBR, "./$f") or die "reloadDB failed on ./$f: $!\n\n";
-        
+        open (DBR, "$f") or die "reloadDB failed on $f: $!\n\n";
+
         flock(DBR, LOCK_SH) or 
             die "Unable to obtain LOCK_SH on $f: $!\n\n";
 
@@ -167,7 +181,7 @@ sub setLastMsgId {
     my $s = shift;
     my $lmi = shift;
 
-    $s->{'lastMsgId'} = $lmi;
+    $s->{'lastMsgId'} = $lmi, if ($lmi);
     $s->dumpDB();
 }
 

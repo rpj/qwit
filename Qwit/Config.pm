@@ -9,8 +9,8 @@ use Qwit::Debug;
 use Data::Dumper;
 
 my $ModifiableKeys = "debuglevel sleepdelay";
-my $AllKeys = "debuglevel sleepdelay username password clientname " .
-                "delaymult dbfile godid heartbeatfile backupdir";
+my $AllKeys = "debuglevel sleepdelay username password " .
+                "delaymult dbfile godid heartbeatfile backupdir backupfreq";
 
 my $SingletonObject = undef;
 
@@ -46,6 +46,12 @@ sub init {
     else
     {
         $ret = undef;
+    }
+
+    if (defined($ret))
+    {
+    	$s->{twitterConf}->{traits} = [qw/Legacy RateLimit/];
+	$s->{twitterConf}->{source} = 'api';
     }
 
     pdebugl(3, "Qwit::Config::init has hash: ". Dumper($s->{'twitterConf'}));
@@ -127,6 +133,10 @@ sub heartbeatFile {
 
 sub backupDir {
     return (shift)->{'conf'}->{'backupdir'};
+}
+
+sub backupFreq {
+    return (shift)->{'conf'}->{'backupfreq'};
 }
 
 sub isKeyModifiable {
