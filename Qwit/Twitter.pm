@@ -41,7 +41,7 @@ sub __update_rate_limit_info {
     $self->{reqInfo}->{resetTime} = $rls->{reset_time_in_seconds};
     $self->{reqInfo}->{lastRateRatio} = $self->{conn}->rate_ratio();
 
-    pdebugl(3, "__update_rate_limit_info: " . Data::Dumper::Dumper($self->{reqInfo}));
+    pdebugl(4, "__update_rate_limit_info: " . Data::Dumper::Dumper($self->{reqInfo}));
 }
 
 sub init {
@@ -52,14 +52,17 @@ sub init {
 
     $self->{reqInfo} = {};
     $self->{reqInfo}->{contAdj} = $self->{reqInfo}->{last} = 0;
+    $self->{reqInfo}->{lifecount} = 0;
 
     $self->__update_rate_limit_info();
+
+    $self->{minTime} = $self->minSleepTimeAllowed();
 
     return $self;
 }
 
 sub numRequestsProcessed {
-    return (shift)->{'reqInfo'}->{'count'};
+    return (shift)->{'reqInfo'}->{'lifecount'};
 }
 
 sub __accum_request {
@@ -67,6 +70,7 @@ sub __accum_request {
 
     $self->{'reqInfo'}->{'last'} = time();
     $self->{'reqInfo'}->{'count'}++;
+    $self->{reqInfo}->{lifecount}++;
     $self->{reqInfo}->{remaining}--;
 
     my $intRm = $self->{reqInfo}->{limit} - $self->{reqInfo}->{count};
@@ -142,10 +146,10 @@ sub rateRatio {
     return $self->{conn}->rate_ratio();
 }
 
-sub adjustSleepViaRateInfo($$) {
+sub adjustSleepViaRateInfo($) {
     my $self = shift;
     my $sleep = shift;
-    my $lowlim = shift;
+    my $lowlim = $self->{minTime};
     my $rr = $self->{conn}->rate_ratio();
     my $ruone = $self->{conn}->until_rate(1.0);
     my $lrr = $self->{reqInfo}->{lastRateRatio};
